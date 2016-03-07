@@ -146,7 +146,9 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
   src/tinkerforge/bricklet_distance_ir.c
   src/tinkerforge/bricklet_distance_us.c
   src/tinkerforge/bricklet_temperature.c
+  src/tinkerforge/bricklet_temperature_ir.c
   src/tinkerforge/bricklet_motion_detector.c
+  src/tinkerforge/bricklet_humidity.c
  )
 
 ## Add cmake target dependencies of the executable

@@ -19,8 +19,10 @@ Bricklets:
 * Distance IR => sensor_msgs/Range
 * Distance US => sensor_msgs/Range
 * GPS (Test) => sensor_msgs/NavSatFix
+* Humidity => sensor_msgs/Humidity
 * Motion Detector (Test)
 * Temperature => sensor_msgs/Temperature
+* Temperature IR => sensor_msgs/Temperature
 
 Bricks:
 

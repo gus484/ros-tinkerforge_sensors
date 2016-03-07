@@ -13,7 +13,9 @@
 #include "bricklet_industrial_digital_in_4.h"
 #include "bricklet_dual_button.h"
 #include "bricklet_ambient_light.h"
+#include "bricklet_humidity.h"
 #include "bricklet_temperature.h"
+#include "bricklet_temperature_ir.h"
 #include "bricklet_distance_ir.h"
 #include "bricklet_distance_us.h"
 #include "bricklet_motion_detector.h"
@@ -42,6 +44,9 @@ public:
 
   //! Publish the MagneticField message
   void publishMagneticFieldMessage(SensorDevice *sensor);
+
+  //! Publish the Humidity message
+  void publishHumidityMessage(SensorDevice *sensor);
 
   //! Publish the Temperature message
   void publishTemperatureMessage(SensorDevice *sensor);

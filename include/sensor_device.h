@@ -17,7 +17,7 @@
 
 #define IMU_V2_MAGNETIC_DEVICE_IDENTIFIER 400
 
-enum class SensorClass {TEMPERATURE, LIGHT, IMU, RANGE, GPS, MAGNETIC, MISC};
+enum class SensorClass {TEMPERATURE, HUMIDITY, LIGHT, IMU, RANGE, GPS, MAGNETIC, MISC};
 
 struct SensorConf
 {
@@ -59,6 +59,9 @@ public:
       {
         case SensorClass::GPS:
           topic = std::string("/") + std::string("tfsensors") + std::string("/") + std::string("gps") + std::string(stream.str());
+        break;
+        case SensorClass::HUMIDITY:
+          topic = std::string("/") + std::string("tfsensors") + std::string("/") + std::string("humidity") + std::string(stream.str());
         break;
         case SensorClass::IMU:
           topic = std::string("/") + std::string("tfsensors") + std::string("/") + std::string("imu") + std::string(stream.str());

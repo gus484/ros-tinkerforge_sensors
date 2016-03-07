@@ -16,6 +16,7 @@
 #include <sensor_msgs/Temperature.h>
 #include <sensor_msgs/Illuminance.h>
 #include <sensor_msgs/Range.h>
+#include <sensor_msgs/RelativeHumidity.h>
 #include "ip_connection.h"
 #include "bricklet_ambient_light.h"
 #include "bricklet_ambient_light_v2.h"
@@ -24,7 +25,9 @@
 #include "bricklet_gps.h"
 #include "bricklet_industrial_digital_in_4.h"
 #include "bricklet_dual_button.h"
+#include "bricklet_humidity.h"
 #include "bricklet_temperature.h"
+#include "bricklet_temperature_ir.h"
 #include "bricklet_distance_ir.h"
 #include "bricklet_distance_us.h"
 #include "bricklet_motion_detector.h"
@@ -84,6 +87,9 @@ TinkerforgeSensors::~TinkerforgeSensors()
       case GPS_DEVICE_IDENTIFIER:
         gps_destroy((GPS*)dev->getDev());
       break;
+      case HUMIDITY_DEVICE_IDENTIFIER:
+        humidity_destroy((Humidity*)dev->getDev());
+      break;
       case IMU_DEVICE_IDENTIFIER:
         imu_leds_off((IMU*)dev->getDev());
         imu_destroy((IMU*)dev->getDev());
@@ -94,6 +100,9 @@ TinkerforgeSensors::~TinkerforgeSensors()
       break;
       case TEMPERATURE_DEVICE_IDENTIFIER:
         temperature_destroy((Temperature*)dev->getDev());
+      break;
+      case TEMPERATURE_IR_DEVICE_IDENTIFIER:
+        temperature_ir_destroy((TemperatureIR*)dev->getDev());
       break;
     }
     delete dev;
@@ -357,6 +366,15 @@ void TinkerforgeSensors::publishNavSatFixMessage(SensorDevice *sensor)
 }
 
 /*----------------------------------------------------------------------
+ * publishHumidityMessage()
+ * Publish the Humidity message.
+ *--------------------------------------------------------------------*/
+
+void TinkerforgeSensors::publishHumidityMessage(SensorDevice *sensor)
+{
+}
+
+/*----------------------------------------------------------------------
  * publishTemperatureMessage()
  * Publish the Temperature message.
  *--------------------------------------------------------------------*/
@@ -365,11 +383,27 @@ void TinkerforgeSensors::publishTemperatureMessage(SensorDevice *sensor)
 {
   if (sensor != NULL)
   {
-    int16_t temperature;
-    if(temperature_get_temperature((Temperature*)sensor->getDev(), &temperature) < 0) {
+    float temperature = 0.0;
+
+    if (sensor->getType() == TEMPERATURE_DEVICE_IDENTIFIER)
+    {
+      int16_t ambient_temperature;
+      if(temperature_get_temperature((Temperature*)sensor->getDev(), &ambient_temperature) < 0) {
         ROS_ERROR_STREAM("Could not get temperature from " << sensor->getUID() << ", probably timeout");
         return;
+      }
+      temperature = temperature / 100.0;
     }
+    else if (sensor->getType() == TEMPERATURE_IR_DEVICE_IDENTIFIER) {
+      int16_t object_temperature;
+
+      if(temperature_ir_get_object_temperature((TemperatureIR*)sensor->getDev(), &object_temperature) < 0) {
+        ROS_ERROR_STREAM("Could not get object temperature from" << sensor->getUID() << ", probably timeout");
+        return;
+      }
+      temperature = object_temperature / 10.0;
+    }
+
     // generate Temperature message from temperature sensor
     sensor_msgs::Temperature temp_msg;
 
@@ -378,7 +412,7 @@ void TinkerforgeSensors::publishTemperatureMessage(SensorDevice *sensor)
     temp_msg.header.stamp = ros::Time::now();
     temp_msg.header.frame_id = sensor->getFrame();
 
-    temp_msg.temperature = temperature / 100.0;
+    temp_msg.temperature = temperature;
     temp_msg.variance = 0;
 
     // publish Temperature msg to ros
@@ -482,7 +516,7 @@ void TinkerforgeSensors::publishIlluminanceMessage(SensorDevice *sensor)
     illum_msg.header.seq =  sensor->getSeq();
     illum_msg.header.stamp = ros::Time::now();
     illum_msg.header.frame_id = sensor->getFrame();
-    
+
     illum_msg.illuminance = illuminance;
     illum_msg.variance = 0;
 
@@ -505,6 +539,9 @@ void TinkerforgeSensors::publishSensors()
     //  continue;
     switch((*lIter)->getSensorClass())
     {
+      case SensorClass::HUMIDITY:
+        publishHumidityMessage(*lIter);
+      break;
       case SensorClass::LIGHT:
         publishIlluminanceMessage(*lIter);
       break;
@@ -613,12 +650,23 @@ void TinkerforgeSensors::callbackEnumerate(const char *uid, const char *connecte
   else if (device_identifier == DUAL_BUTTON_DEVICE_IDENTIFIER)
   {
     ROS_INFO_STREAM("found DualButton with UID:" << uid);
-    
+
     DualButton *db = new DualButton();
     dual_button_create(db, uid, &(tfs->ipcon));
 
     SensorDevice *db_dev = new SensorDevice(db, uid, topic, DUAL_BUTTON_DEVICE_IDENTIFIER, SensorClass::MISC, 10);
     tfs->sensors.push_back(db_dev);
+  }
+  else if (device_identifier == HUMIDITY_DEVICE_IDENTIFIER)
+  {
+    ROS_INFO_STREAM("found Humidity with UID:" << uid);
+    Humidity *hu = new Humidity();
+    // Create Humidity device object
+    humidity_create(hu, uid, &(tfs->ipcon));
+
+    SensorDevice *hu_dev = new SensorDevice(hu, uid, topic, HUMIDITY_DEVICE_IDENTIFIER, SensorClass::HUMIDITY, 10);
+    tfs->sensors.push_back(hu_dev);
+
   }
   else if (device_identifier == TEMPERATURE_DEVICE_IDENTIFIER)
   {
@@ -629,6 +677,17 @@ void TinkerforgeSensors::callbackEnumerate(const char *uid, const char *connecte
 
     SensorDevice *temp_dev = new SensorDevice(temp, uid, topic, TEMPERATURE_DEVICE_IDENTIFIER, SensorClass::TEMPERATURE, 10);
     tfs->sensors.push_back(temp_dev);
+
+  }
+  else if (device_identifier == TEMPERATURE_IR_DEVICE_IDENTIFIER)
+  {
+    ROS_INFO_STREAM("found Temperature IR with UID:" << uid);
+    TemperatureIR *tir = new TemperatureIR();
+    // Create Temperature IR device object
+    temperature_ir_create(tir, uid, &(tfs->ipcon));
+
+    SensorDevice *tir_dev = new SensorDevice(tir, uid, topic, TEMPERATURE_IR_DEVICE_IDENTIFIER, SensorClass::TEMPERATURE, 10);
+    tfs->sensors.push_back(tir_dev);
 
   }
   else if (device_identifier == AMBIENT_LIGHT_DEVICE_IDENTIFIER)
