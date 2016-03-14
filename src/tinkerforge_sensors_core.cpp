@@ -22,6 +22,7 @@
 #include "bricklet_ambient_light_v2.h"
 #include "brick_imu.h"
 #include "brick_imu_v2.h"
+#include "brick_master.h"
 #include "bricklet_gps.h"
 #include "bricklet_industrial_digital_in_4.h"
 #include "bricklet_dual_button.h"
@@ -120,14 +121,14 @@ TinkerforgeSensors::~TinkerforgeSensors()
  * Init the TF-Devices
  *--------------------------------------------------------------------*/
 
-int TinkerforgeSensors::init()
+bool TinkerforgeSensors::init()
 {
   // create IP connection
   ipcon_create(&ipcon);
 
   // connect to brickd
   if(ipcon_connect(&ipcon, this->host.c_str(), this->port) < 0) {
-    std::cout << "could not connect to brickd!" << std::endl;
+    ROS_FATAL_STREAM("Could not connect to brickd!");
     return false;
   }
 
@@ -143,7 +144,7 @@ int TinkerforgeSensors::init()
     (void*)callbackEnumerate,
     this);
 
-  return 0;
+  return true;
 }
 
 /*----------------------------------------------------------------------
@@ -372,6 +373,29 @@ void TinkerforgeSensors::publishNavSatFixMessage(SensorDevice *sensor)
 
 void TinkerforgeSensors::publishHumidityMessage(SensorDevice *sensor)
 {
+  if (sensor != NULL)
+  {
+	uint16_t humidity = 0.0;
+
+    if(humidity_get_humidity((Humidity*)sensor->getDev(), &humidity) < 0) {
+      ROS_ERROR_STREAM("Could not get humidity from " << sensor->getUID() << ", probably timeout");
+      return;
+    }
+
+    // generate Humidity message from humidity sensor
+    sensor_msgs::RelativeHumidity hu_msg;
+
+    // message header
+    hu_msg.header.seq =  sensor->getSeq();
+    hu_msg.header.stamp = ros::Time::now();
+    hu_msg.header.frame_id = sensor->getFrame();
+
+    hu_msg.relative_humidity = humidity / 1000.0;
+    hu_msg.variance = 0; // 0 is interpreted as variance unknown
+
+    // publish Humidity msg to ros
+    sensor->getPub().publish(hu_msg);
+  }
 }
 
 /*----------------------------------------------------------------------
@@ -428,9 +452,9 @@ void TinkerforgeSensors::publishRangeMessage(SensorDevice *sensor)
 {
   if (sensor != NULL)
   {
+    SensorParam param;
     // generate Range message from distance sensor
     sensor_msgs::Range range_msg;
-
     uint16_t distance;
     if (sensor->getType() == DISTANCE_US_DEVICE_IDENTIFIER)
     {
@@ -439,10 +463,13 @@ void TinkerforgeSensors::publishRangeMessage(SensorDevice *sensor)
         return;
       }
       range_msg.radiation_type = sensor_msgs::Range::ULTRASOUND;
-      range_msg.range = distance;
-      range_msg.field_of_view = 0.01;
-      range_msg.min_range = 0.03;
-      range_msg.max_range = 0.4;
+      range_msg.range = distance / 1000.0;
+      param = sensor->getParam("fow");
+      range_msg.field_of_view = (param.type != ParamType::NONE)? param.value_double : 0.2617;
+      param = sensor->getParam("min");
+      range_msg.min_range = (param.type != ParamType::NONE)? param.value_double : 0.02;
+      param = sensor->getParam("max");
+      range_msg.max_range = (param.type != ParamType::NONE)? param.value_double : 4.0;
     }
     else if (sensor->getType() == DISTANCE_IR_DEVICE_IDENTIFIER)
     {
@@ -452,9 +479,12 @@ void TinkerforgeSensors::publishRangeMessage(SensorDevice *sensor)
       }
       range_msg.radiation_type = sensor_msgs::Range::INFRARED;
       range_msg.range = distance / 1000.0;
-      range_msg.field_of_view = 0.01;
-      range_msg.min_range = 0.03;
-      range_msg.max_range = 0.4;
+      param = sensor->getParam("fow");
+      range_msg.field_of_view = (param.type != ParamType::NONE)? param.value_double : 0.01;
+      param = sensor->getParam("min");
+      range_msg.min_range = (param.type != ParamType::NONE)? param.value_double : 0.03;
+      param = sensor->getParam("max");
+      range_msg.max_range = (param.type != ParamType::NONE)? param.value_double : 0.4;
     }
     else
     {
@@ -534,9 +564,6 @@ void TinkerforgeSensors::publishSensors()
   std::list<SensorDevice*>::iterator lIter;
   for (lIter = sensors.begin(); lIter != sensors.end(); ++lIter)
   {
-    //std::cout << "list::" << "::" << (*lIter)->getUID() << "::" << (*lIter)->getTopic() << std::endl;
-    //if (lIter->getPub() == NULL)
-    //  continue;
     switch((*lIter)->getSensorClass())
     {
       case SensorClass::HUMIDITY:
@@ -558,11 +585,6 @@ void TinkerforgeSensors::publishSensors()
         publishTemperatureMessage(*lIter);
       break;
     }
-  }
-
-  for (std::vector<SensorConf>::iterator it = sensor_conf.begin(); it != sensor_conf.end(); ++it)
-  {
-    //std::cout << "vec::"<< it->uid << "::" << it->topic << std::endl;
   }
   return;
 }
@@ -591,6 +613,8 @@ void TinkerforgeSensors::callbackEnumerate(const char *uid, const char *connecte
                   uint8_t enumeration_type, void *user_data)
 {
   TinkerforgeSensors *tfs = (TinkerforgeSensors*) user_data;
+  std::map<std::string, std::map<std::string, SensorParam>>::iterator it;
+  std::map<std::string, SensorParam>::iterator it_sp;
   std::string topic("");
 
   if(enumeration_type == IPCON_ENUMERATION_TYPE_DISCONNECTED)
@@ -598,15 +622,18 @@ void TinkerforgeSensors::callbackEnumerate(const char *uid, const char *connecte
     return;
   }
 
-  // search for predefined topic
-  for (std::vector<SensorConf>::iterator it = tfs->sensor_conf.begin(); it != tfs->sensor_conf.end(); ++it)
+  // check if uid is in conf
+  it = tfs->conf.find((std::string)uid);
+  if (it != tfs->conf.end())
   {
-    if (it->uid.compare((std::string)uid) == 0)
-    {
-      topic = it->topic;
-      break;
-    }
+    // check if topic is set
+    it_sp = it->second.find("topic");
+    if (it_sp != it->second.end())
+      topic = (std::string)it_sp->second.value_str;
   }
+
+  // get sensor count for later check, to add params to sensor
+  int sensor_count = tfs->sensors.size();
 
   // check if device is an imu
   if(device_identifier == IMU_DEVICE_IDENTIFIER)
@@ -628,7 +655,7 @@ void TinkerforgeSensors::callbackEnumerate(const char *uid, const char *connecte
     // Create IMU_v2 device object
     IMUV2 *imu_v2 = new IMUV2();
     imu_v2_create(imu_v2, uid, &(tfs->ipcon));
-    imu_leds_on(imu_v2);
+    imu_v2_leds_on(imu_v2);
 
     SensorDevice *imu_dev = new SensorDevice(imu_v2, uid, topic, IMU_V2_DEVICE_IDENTIFIER, SensorClass::IMU, 10);
     tfs->sensors.push_back(imu_dev);
@@ -734,5 +761,23 @@ void TinkerforgeSensors::callbackEnumerate(const char *uid, const char *connecte
     motion_detector_create(md, uid, &(tfs->ipcon));
     SensorDevice *md_dev = new SensorDevice(md, uid, topic, MOTION_DETECTOR_DEVICE_IDENTIFIER, SensorClass::MISC, 10);
     tfs->sensors.push_back(md_dev);
+  }
+  else if (device_identifier == MASTER_DEVICE_IDENTIFIER)
+  {
+    ROS_INFO_STREAM("found Master brick with UID:" << uid);
+  }
+  else
+  {
+    ROS_WARN_STREAM("unkown sensor with UID:" << uid);
+  }
+
+  //if new sensor add params
+  if (sensor_count < tfs->sensors.size())
+  {
+    //ROS_INFO_STREAM("Add Params");
+    if (it != tfs->conf.end())
+    {
+      tfs->sensors.back()->setParams(it->second);
+    }
   }
 }

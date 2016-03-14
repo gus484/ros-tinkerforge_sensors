@@ -3,6 +3,7 @@
 
 // ROS includes
 #include <list>
+#include <map>
 #include "ros/ros.h"
 #include "ros/time.h"
 #include "sensor_device.h"
@@ -28,13 +29,14 @@ public:
   //! Constructur
   TinkerforgeSensors();
 
-  TinkerforgeSensors(std::string topic, int port);
+  //! Constructor with tinkerforge connection parameters
+  TinkerforgeSensors(std::string host, int port);
 
   //! Destructor
   ~TinkerforgeSensors();
 
   //! Init
-  int init();
+  bool init();
 
   //! Publish the IMU message
   void publishImuMessage(SensorDevice *sensor);
@@ -60,8 +62,9 @@ public:
   //! Publish Sensors Messages
   void publishSensors();
 
-  std::vector<SensorConf> sensor_conf;
-  //! Sensor
+  //! Store for sensor params
+  std::map<std::string, std::map<std::string, SensorParam>> conf;
+  //! Sensor list
   std::list<SensorDevice*> sensors;
 
 private:

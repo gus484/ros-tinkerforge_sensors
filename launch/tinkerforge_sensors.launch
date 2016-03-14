@@ -1,7 +1,5 @@
 <launch>
-  <node name="tfsensors" pkg="tinkerforge_sensors" type="tinkerforge_sensors_node" output="screen">
-    <rosparam param="UID_to_Topic">
-      6wViuNa : 'imu_v2'
-    </rosparam>
+  <node name="tfsensors" pkg="tinkerforge_sensors" type="tinkerforge_sensors_node" output="screen" clear_params="true">
+	<rosparam param="sensor_conf" file="/home/odroid/catkin_ws/src/tinkerforge_sensors/launch/conf.yaml" />
   </node>
 </launch>

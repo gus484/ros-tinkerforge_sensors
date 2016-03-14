@@ -1,8 +1,8 @@
 ### Tinkerforge Sensors
 
-Mit diesem Paket können Tinkerforge Sensoren im ROS genutzt werden. Auch Sensoren des gleichen Typs werden erkannt. Durch Nutzung des "robusten Ansatzes" ist die Angabe von UIDs nicht notwendig. Die Sensorwerte werden in entsprechende ROS-Messages über automatisch generierte Topics verbreitet. Unter Verwendung eines Launch-Files können Topic per UID manuell festgelegt werden.
+Mit diesem Paket können Tinkerforge Sensoren im ROS genutzt werden. Auch Sensoren des gleichen Typs werden erkannt. Durch Nutzung des "robusten Ansatzes" ist die Angabe von UIDs nicht notwendig. Die Sensorwerte werden in entsprechende ROS-Messages über automatisch generierte Topics verbreitet. Unter Verwendung eines Launch-Files können Topic und andere Sensorparameter per UID manuell festgelegt werden.
 
-This package allows you to use TinkerForge sensors with ROS. Sensors of same type will be supported. Package used the "Rugged Approach", so it's not necessary to configure the sensor UIDs. Sensor values will be published over automatic generated topics with typical ROS message types. With a Launchfile a topic can be bind on an UID.
+This package allows you to use TinkerForge sensors with ROS. Sensors of same type will be supported. Package used the "Rugged Approach", so it's not necessary to configure the sensor UIDs. Sensor values will be published over automatic generated topics with typical ROS message types. With a Launchfile a topic and other sensor parameters can be bind on an UID.
 
 ##### Hinweise / Hints
 
@@ -52,6 +52,27 @@ Argumente
 * ip (string) *Tinkerforge IP*
 
 `roslaunch tinkerforge_sensors tinkerforge_sensors.launch`
+
+#### Sensorparameter / sensor parameters
+
+Einige Sensoren benötigen zusätzliche Parameter, damit sie korrekt funktionieren, z.B. die Reichweitenangaben des Distance IR Bricklets. Diese Parameter werden über die UID dem Programm mitgeteilt und in einer yaml-Datei (conf.yaml) gespeichert.
+
+Some sensors require additional parameters in order to work properly, e.g. the range data of the Distance IR Bricklet. These parameters are stored in an yaml file (conf.yaml) and are read by the program over the UID. 
+
+Aufbau einer Zeile / structure of a line:
+
+`uid : {parameter1 = wert1, parameter2 = wert2, ...}`
+
+Beispiel / example:
+
+`n3J : {topic : 'range_us', max : 4.0, min : 0.02}`
+
+*Siehe auch conf.yaml / see also conf.yaml*
+
+Unterstützte Parameter / supported parameters
+
+* all => topic (string)
+* Distance IR / Distance US => max (double) ; min (double)
 
 ### ToDo
 

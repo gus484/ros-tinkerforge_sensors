@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <map>
 #include <stdint.h>
 #include "ros/ros.h"
 #include "bricklet_ambient_light.h"
@@ -18,11 +19,22 @@
 #define IMU_V2_MAGNETIC_DEVICE_IDENTIFIER 400
 
 enum class SensorClass {TEMPERATURE, HUMIDITY, LIGHT, IMU, RANGE, GPS, MAGNETIC, MISC};
+enum class ParamType {NONE,INT,DOUBLE,STRING,BOOL};
 
-struct SensorConf
+struct SensorParam
 {
-  std::string uid;
-  std::string topic;
+  ParamType type;
+  std::string value_str;
+  int value_int;
+  float value_double;
+
+  SensorParam()
+  {
+    type = ParamType::NONE;
+    value_str = "";
+    value_int = 0;
+    value_double = 0.0;
+  }
 };
 
 class SensorDevice
@@ -37,7 +49,7 @@ public:
     this->sclass = sclass;
     this->rate = rate;
     this->frame = "/base_link";
-    //this->pub = NULL;
+
     if (topic.size() == 0)
       buildTopic(this);
     else
@@ -46,7 +58,7 @@ public:
   ~SensorDevice()
   {
     std::cout << "Destructor for:" << uid << std::endl;
-   };
+  };
 
    static std::string buildTopic(SensorDevice *sensor)
     {
@@ -84,6 +96,17 @@ public:
       sensor->topic = topic;
       return topic;
     };
+
+  SensorParam getParam(std::string param)
+  {
+    std::map<std::string, SensorParam>::iterator it;
+    SensorParam sp;
+
+    it = this->params.find(param);
+    if (it != this->params.end())
+      return it->second;
+    return sp;
+  }
 public:
   void *getDev() { return dev; }
   std::string getUID() { return uid; }
@@ -93,11 +116,13 @@ public:
   ros::Publisher getPub() { return pub; }
   uint16_t getType() { return type; }
   SensorClass getSensorClass() { return sclass; }
+  std::map<std::string, SensorParam> params;
 
   void setTopic(std::string topic) { this->topic = topic; }
   void setPub(ros::Publisher pub) { this->pub = pub; }
+  void setParams(std::map<std::string, SensorParam> params) { this->params = params; }
   static int dev_counter[10];
-  //void (*funcptr)(void*);
+
 private:
   void *dev;
   std::string uid;
