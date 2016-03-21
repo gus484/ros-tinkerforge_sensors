@@ -189,6 +189,11 @@ void TinkerforgeSensors::publishImuMessage(SensorDevice *sensor)
       acc_x = (acc_x/1000.0)*9.80605;
       acc_y = (acc_y/1000.0)*9.80605;
       acc_z = (acc_z/1000.0)*9.80605;
+
+      imu_msg.orientation.x = w;
+      imu_msg.orientation.y = z*-1;
+      imu_msg.orientation.z = y;
+      imu_msg.orientation.w = x*-1;
     }
     else if (sensor->getType() == IMU_V2_DEVICE_IDENTIFIER)
     {
@@ -208,6 +213,11 @@ void TinkerforgeSensors::publishImuMessage(SensorDevice *sensor)
       acc_x = acc_x * 100;
       acc_y = acc_y * 100;
       acc_z = acc_z * 100;
+
+      imu_msg.orientation.x = z*-1;
+      imu_msg.orientation.y = y;
+      imu_msg.orientation.z = x;
+      imu_msg.orientation.w = w*-1;
     }
     else
     {
@@ -218,12 +228,6 @@ void TinkerforgeSensors::publishImuMessage(SensorDevice *sensor)
     imu_msg.header.seq = sensor->getSeq();
     imu_msg.header.stamp = current_time;
     imu_msg.header.frame_id = sensor->getFrame();
-
-    //TODO adapt values for IMU v2
-    imu_msg.orientation.x = w;
-    imu_msg.orientation.y = z*-1;
-    imu_msg.orientation.z = y;
-    imu_msg.orientation.w = x*-1;
 
     // orientation_covariance
     boost::array<const double, 9> oc =
