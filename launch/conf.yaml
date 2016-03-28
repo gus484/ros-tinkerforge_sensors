@@ -1,1 +1,1 @@
-n3J : {topic: 'range_us', min: 0.02, max : 4.0}
+n3J : {frame_id: "base_ultrasonic", min: 0.02, max : 4.0}
