@@ -65,13 +65,13 @@ Aufbau einer Zeile / structure of a line:
 
 Beispiel / example:
 
-`n3J : {topic : 'range_us', max : 4.0, min : 0.02}`
+`n3J : {frame_id: 'base_ultrasonic', topic : 'range_us', max : 4.0, min : 0.02}`
 
 *Siehe auch conf.yaml / see also conf.yaml*
 
 Unterstützte Parameter / supported parameters
 
-* all => topic (string)
+* all => topic (string) ; frame_id (string)
 * Distance IR / Distance US => max (double) ; min (double)
 
 ### ToDo
