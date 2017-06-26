@@ -192,10 +192,10 @@ void TinkerforgeSensors::publishImuMessage(SensorDevice *sensor)
     else if (sensor->getType() == IMU_V2_DEVICE_IDENTIFIER)
     {
       imu_v2_get_quaternion((IMUV2*)sensor->getDev(), &ix, &iy, &iz, &iw);
-      x = ix / 16383.0;
-      y = iy / 16383.0;
-      z = iz / 16383.0;
-      w = iw / 16383.0;
+      x = float(ix) / 16383.0;
+      y = float(iy) / 16383.0;
+      z = float(iz) / 16383.0;
+      w = float(iw) / 16383.0;
 
       imu_v2_get_linear_acceleration((IMUV2*)sensor->getDev(), &acc_x, &acc_y, &acc_z);
       imu_v2_get_angular_velocity((IMUV2*)sensor->getDev(), &ang_x, &ang_y, &ang_z);
@@ -209,10 +209,10 @@ void TinkerforgeSensors::publishImuMessage(SensorDevice *sensor)
       f_acc_y = float(acc_y) / 100.0;
       f_acc_z = float(acc_z) / 100.0;
       
-      imu_msg.orientation.x = x;
-      imu_msg.orientation.y = y;
-      imu_msg.orientation.z = z;
-      imu_msg.orientation.w = w;
+      imu_msg.orientation.x = y;
+      imu_msg.orientation.y = z;
+      imu_msg.orientation.z = w;
+      imu_msg.orientation.w = x;
 
     }
     else
