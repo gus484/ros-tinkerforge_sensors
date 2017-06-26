@@ -209,10 +209,10 @@ void TinkerforgeSensors::publishImuMessage(SensorDevice *sensor)
       f_acc_y = float(acc_y) / 100.0;
       f_acc_z = float(acc_z) / 100.0;
       
-      imu_msg.orientation.x = w;
-      imu_msg.orientation.y = z;
-      imu_msg.orientation.z = y;
-      imu_msg.orientation.w = x;
+      imu_msg.orientation.x = x;
+      imu_msg.orientation.y = y;
+      imu_msg.orientation.z = z;
+      imu_msg.orientation.w = w;
 
     }
     else
